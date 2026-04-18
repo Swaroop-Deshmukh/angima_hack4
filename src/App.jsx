@@ -1,6 +1,7 @@
 import React from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navigation from './components/Navigation';
+import ScrollToTop from './components/ScrollToTop';
 import ExecutiveOverview from './pages/ExecutiveOverview';
 import MacroAllocation from './pages/MacroAllocation';
 import ScenarioSandbox from './pages/ScenarioSandbox';
@@ -11,19 +12,20 @@ import AIPolicyAdvisor from './pages/AIPolicyAdvisor';
 function App() {
   const location = useLocation();
 
-  // Determine current theme based on route
-  const getThemeClass = () => {
-    if (location.pathname === '/scenario-sandbox') return 'theme-dark';
-    if (location.pathname === '/crisis-mode') return 'theme-emergency';
-    return '';
-  };
+  const themeClass =
+    location.pathname === '/scenario-sandbox'
+      ? 'theme-dark'
+      : location.pathname === '/crisis-mode'
+        ? 'theme-emergency'
+        : '';
 
   React.useEffect(() => {
-    document.body.className = getThemeClass();
-  }, [location.pathname]);
+    document.body.className = themeClass;
+  }, [themeClass]);
 
   return (
-    <div className={`app-container ${getThemeClass()}`}>
+    <div className={`app-container ${themeClass}`}>
+      <ScrollToTop />
       <Navigation />
       <main className="main-content">
         <Routes>

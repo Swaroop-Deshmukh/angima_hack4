@@ -1,117 +1,157 @@
-import React, { useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useMemo, useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Zap } from 'lucide-react';
+import { predictBudgetShiftOutcome, summarizeOpportunityCost } from '../lib/budgetModel';
 
-const ScenarioSandbox = () => {
+export default function ScenarioSandbox() {
   const [healthVal, setHealthVal] = useState(10);
   const [welfareCost, setWelfareCost] = useState(500);
 
-  // Generate dynamic chart data based on health slider
-  const chartData = [
-    { year: '2024', health: 400, infra: 800 },
-    { year: '2025', health: 400 + (healthVal * 10), infra: 800 - (healthVal * 8) },
-    { year: '2026', health: 400 + (healthVal * 15), infra: 800 - (healthVal * 10) },
-    { year: '2027', health: 400 + (healthVal * 20), infra: 800 - (healthVal * 16) },
-  ];
+  const chartData = useMemo(() => {
+    const base = summarizeOpportunityCost({ healthcareIncreasePct: Number(healthVal) });
+    return [
+      { year: '2024', health: 400, infra: 800, lifeExp: 68.2 },
+      { year: '2025', health: base.healthProjected, infra: base.infraProjected, lifeExp: 68.2 + healthVal * 0.09 },
+      { year: '2026', health: base.healthProjected + healthVal * 6, infra: Math.max(200, base.infraProjected - healthVal * 5), lifeExp: 68.2 + healthVal * 0.14 },
+      { year: '2027', health: base.healthProjected + healthVal * 11, infra: Math.max(160, base.infraProjected - healthVal * 9), lifeExp: 68.2 + healthVal * 0.19 },
+    ];
+  }, [healthVal]);
+
+  const rf = useMemo(
+    () =>
+      predictBudgetShiftOutcome({
+        healthcarePct: Number(healthVal),
+        educationPct: 6,
+        infrastructurePct: -Math.min(40, Number(healthVal) * 0.85),
+        industrialPct: -2,
+      }),
+    [healthVal]
+  );
+
+  const opp = summarizeOpportunityCost({ healthcareIncreasePct: Number(healthVal) });
+
+  const xaiBrief = useMemo(() => {
+    const h = Number(healthVal);
+    const district = h >= 25 ? 'Bastar' : h >= 15 ? 'Gondia' : 'Korba';
+    return `Increasing the Education budget in District ${district} is prioritized over heavy industrialization due to a ${38 + Math.min(12, Math.floor(h / 3))}% youth demographic (synthetic census slice), elevated cultural resistance to land acquisition, and a higher marginal return on human-capital formation versus smokestack capex under the Gondia Protocol. Opportunity cost is concentrated in ${opp.sectorReduced}, releasing ₹${(h * 8).toFixed(0)} Cr (modelled) over the outer years while life expectancy uplift is projected at +${opp.lifeExpectancyDeltaMonths} months in the national health index.`;
+  }, [healthVal, opp.lifeExpectancyDeltaMonths, opp.sectorReduced]);
+
+  const welfare = useMemo(() => {
+    const w = Number(welfareCost) || 0;
+    const deficitDelta = Math.min(8.5, w * 0.014);
+    const satisfaction = Math.min(99, 42 + w * 0.07);
+    return { deficitDelta, satisfaction };
+  }, [welfareCost]);
 
   return (
-    <div>
-      {/* Note: the theme-dark is applied by App.jsx based on route */}
-      <h1 className="section-title" style={{ color: 'var(--text-primary)' }}>Scenario Sandbox</h1>
-      <p className="section-subtitle"> The "What-If" Engine determining opportunity costs and long-term vitality.</p>
+    <div className="scenario-page">
+      <h1 className="section-title" style={{ color: 'var(--text-primary)' }}>
+        Scenario Sandbox
+      </h1>
+      <p className="section-subtitle">The &ldquo;What-If&rdquo; engine: opportunity costs, welfare shocks, and formal XAI briefs.</p>
 
-      <div className="grid grid-cols-2-1" style={{ marginBottom: '24px' }}>
-        
-        {/* Left: Curves & Sliders */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-            <h3 style={{ fontWeight: '600' }}>Budget Reallocation Slider</h3>
-            <span className="badge badge-blue">Real-time Recalculation</span>
+      <div className="grid grid-cols-2-1 scenario-grid">
+        <div className="card scenario-panel">
+          <div className="scenario-panel-head">
+            <h3 className="scenario-panel-title">Budget Reallocation Slider</h3>
+            <span className="badge badge-blue">Real-time recalculation</span>
           </div>
 
-          <div style={{ marginBottom: '32px' }}>
-            <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div className="scenario-slider-block">
+            <label className="scenario-slider-label">
               <span>Increase Healthcare Budget (%)</span>
-              <span style={{ color: 'var(--accent-neon-green)', fontWeight: '700' }}>+{healthVal}%</span>
+              <span className="scenario-slider-value">+{healthVal}%</span>
             </label>
-            <input 
-              type="range" 
-              min="0" max="50" 
-              value={healthVal} 
-              onChange={(e) => setHealthVal(e.target.value)} 
-              className="slider-input" 
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={healthVal}
+              onChange={(e) => setHealthVal(Number(e.target.value))}
+              className="slider-input"
             />
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-              Opportunity Cost Warning: Infrastructure budget will be reduced proportionally.
+            <p className="scenario-opp">
+              <strong>Opportunity cost:</strong> {opp.sectorReduced} loses ~₹{(Number(healthVal) * 8).toFixed(0)} Cr (outer-year model);
+              projected life expectancy movement: <strong>+{opp.lifeExpectancyDeltaMonths} months</strong> (synthetic index).
             </p>
           </div>
 
-          <div style={{ height: '300px', width: '100%', marginTop: 'auto' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+          <div className="scenario-rf-grid">
+            <div className="scenario-rf-card">
+              <div className="scenario-rf-label">Random Forest uplift (ensemble)</div>
+              <div className="scenario-rf-value">{rf.ensembleMean}</div>
+              <div className="scenario-rf-meta">{rf.calibration}</div>
+            </div>
+            <div className="scenario-rf-card">
+              <div className="scenario-rf-label">Projected life expectancy</div>
+              <div className="scenario-rf-value">{rf.projectedLifeExpectancyYears} yrs</div>
+              <div className="scenario-rf-meta">Fiscal stress index: {rf.fiscalStressIndex}</div>
+            </div>
+          </div>
+
+          <div className="scenario-chart-wrap">
+            <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorHealth" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-neon-green)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="var(--accent-neon-green)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--accent-neon-green)" stopOpacity={0.85} />
+                    <stop offset="95%" stopColor="var(--accent-neon-green)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorInfra" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.85} />
+                    <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
                   </linearGradient>
                 </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)" />
                 <XAxis dataKey="year" stroke="var(--text-secondary)" />
                 <YAxis stroke="var(--text-secondary)" />
                 <Tooltip contentStyle={{ backgroundColor: 'var(--surface-color)', borderColor: 'var(--border-color)' }} />
-                <Area type="monotone" dataKey="health" stroke="var(--accent-neon-green)" fillOpacity={1} fill="url(#colorHealth)" name="Health Outcome" />
-                <Area type="monotone" dataKey="infra" stroke="#ef4444" fillOpacity={1} fill="url(#colorInfra)" name="Infra Capability" />
+                <Legend />
+                <Area type="monotone" dataKey="health" stroke="var(--accent-neon-green)" fillOpacity={1} fill="url(#colorHealth)" name="Health outcome" />
+                <Area type="monotone" dataKey="infra" stroke="#ef4444" fillOpacity={1} fill="url(#colorInfra)" name="Infrastructure capability" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Right: Freebies & XAI */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          <div className="card" style={{ borderColor: 'var(--accent-neon-green)' }}>
-            <h3 style={{ fontWeight: '600', marginBottom: '16px' }}>Freebie Impact Analyzer</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Simulate Welfare Schemes.
-            </p>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Subsidy Cost (Cr)</label>
-              <input 
-                type="number" 
+        <div className="scenario-side">
+          <div className="card scenario-freebie">
+            <h3 className="scenario-side-title">Freebie Impact Analyzer</h3>
+            <p className="scenario-side-hint">Simulate welfare schemes: fiscal deficit path vs. citizen satisfaction.</p>
+            <label className="scenario-field-label">
+              Subsidy cost (₹ Cr)
+              <input
+                type="number"
+                min="0"
                 value={welfareCost}
-                onChange={(e) => setWelfareCost(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.2)', color: 'white' }}
+                onChange={(e) => setWelfareCost(Number(e.target.value))}
+                className="scenario-input"
               />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
-              <div style={{ padding: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px', border: '1px solid #ef4444' }}>
-                <span style={{ color: '#ef4444', display: 'block', fontSize: '12px' }}>+ Fiscal Deficit</span>
-                +{(welfareCost * 0.12).toFixed(1)}%
+            </label>
+            <div className="scenario-freebie-metrics">
+              <div className="scenario-metric deficit">
+                <span className="scenario-metric-label">Long-run fiscal deficit pressure</span>
+                <span className="scenario-metric-value">+{welfare.deficitDelta.toFixed(2)} pts</span>
               </div>
-              <div style={{ padding: '8px', backgroundColor: 'rgba(34, 197, 94, 0.1)', borderRadius: '4px', border: '1px solid #22c55e' }}>
-                <span style={{ color: '#22c55e', display: 'block', fontSize: '12px' }}>Sat. Score</span>
-                +{(welfareCost * 0.05).toFixed(1)} pts
+              <div className="scenario-metric sat">
+                <span className="scenario-metric-label">Citizen satisfaction (synthetic)</span>
+                <span className="scenario-metric-value">{welfare.satisfaction.toFixed(1)}</span>
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <h3 style={{ fontWeight: '600', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Zap size={18} color="var(--accent-neon-green)" />
-              XAI Explanation
+          <div className="card scenario-xai">
+            <h3 className="scenario-side-title scenario-xai-title">
+              <Zap size={18} color="var(--accent-neon-green)" aria-hidden />
+              Explainable Recommendations (XAI)
             </h3>
-            <div style={{ padding: '16px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontFamily: 'var(--font-mono)', fontSize: '13px', lineHeight: '1.6' }}>
-              "Increasing Education budget in District X is prioritized over Industrialization due to a 40% youth demographic and cultural resistance to land acquisition."
+            <div className="scenario-xai-body">{xaiBrief}</div>
+            <div className="scenario-xai-foot">
+              Trees: {rf.trees.map((t) => `T${t.id}=${t.value}`).join(' · ')}
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
-};
-
-export default ScenarioSandbox;
+}

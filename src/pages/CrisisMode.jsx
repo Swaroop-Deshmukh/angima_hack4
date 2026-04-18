@@ -1,103 +1,167 @@
-import React, { useState } from 'react';
-import { ShieldAlert, CloudRain, Truck, PowerOff, Wallet } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ShieldAlert, CloudRain, Truck, PowerOff, Wallet, Droplets, Fuel, Activity } from 'lucide-react';
+import { crisisFeeds } from '../data/mockData';
 
-const CrisisMode = () => {
+const CRISIS_TYPES = [
+  { id: 'pandemic', label: 'Pandemic', icon: Activity },
+  { id: 'flood', label: 'Flood', icon: Droplets },
+  { id: 'fuel', label: 'Fuel Crisis', icon: Fuel },
+];
+
+export default function CrisisMode() {
   const [isActive, setIsActive] = useState(false);
+  const [crisis, setCrisis] = useState('pandemic');
+
+  const copy = useMemo(() => {
+    if (crisis === 'flood')
+      return {
+        title: 'MONSOON / FLOOD ALERT — ACTIVE CHANNEL',
+        detail: 'Sovereign buffers prioritise Assam Valley and coastal Odisha clusters; luxury capex frozen.',
+      };
+    if (crisis === 'fuel')
+      return {
+        title: 'FUEL SHOCK — LOGISTICS EMERGENCY',
+        detail: 'Strategic petroleum reserve draw authorised (simulation); district diesel subsidies staged via digital wallets.',
+      };
+    return {
+      title: 'PANDEMIC / HEALTH EMERGENCY — ACTIVE CHANNEL',
+      detail: 'Luxury infrastructure frozen; field hospitals and oxygen logistics prioritised.',
+    };
+  }, [crisis]);
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <h1 className="section-title" style={{ margin: 0 }}>Crisis Mode & Real-Time Response</h1>
-        <button 
+    <div className="crisis-page">
+      <div className="crisis-header">
+        <div>
+          <h1 className="section-title crisis-title">Crisis Mode & Real-Time Response</h1>
+          <p className="section-subtitle crisis-sub">The Bhopal-level readiness protocol — dynamic reprioritisation and logistics attestation.</p>
+        </div>
+        <button
+          type="button"
           onClick={() => setIsActive(!isActive)}
-          className={`btn ${isActive ? 'pulsing-alert' : ''}`}
-          style={{ 
-            backgroundColor: isActive ? 'transparent' : '#b91c1c', 
-            color: isActive ? '#ef4444' : 'white',
-            border: isActive ? '2px solid #ef4444' : 'none',
-            fontSize: '16px',
-            padding: '12px 24px'
-          }}
+          className={`btn crisis-toggle ${isActive ? 'crisis-toggle-on pulsing-alert' : ''}`}
         >
-          <ShieldAlert size={20} />
-          {isActive ? 'DEACTIVATE CRISIS MODE' : 'ENGAGE CRISIS MODE'}
+          <ShieldAlert size={20} aria-hidden />
+          {isActive ? 'Deactivate Crisis Mode' : 'Engage Crisis Mode'}
         </button>
       </div>
-      <p className="section-subtitle"> The "Bhopal-Level" Readiness Protocol.</p>
+
+      <div className="crisis-type-bar" role="tablist" aria-label="Crisis scenario">
+        {CRISIS_TYPES.map((c) => {
+          const Icon = c.icon;
+          const active = crisis === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`crisis-type-btn ${active ? 'active' : ''}`}
+              onClick={() => setCrisis(c.id)}
+            >
+              <Icon size={18} aria-hidden />
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
 
       {isActive && (
-        <div style={{ padding: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <AlertTriangle color="#ef4444" size={32} />
+        <div className="crisis-banner pulsing-alert" role="alert">
+          <ShieldAlert className="crisis-banner-icon" size={28} aria-hidden />
           <div>
-            <h4 style={{ color: '#ef4444', fontWeight: '700', fontSize: '18px' }}>PANDEMIC / FLOOD ALERT ACTIVE</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Luxury infrastructure budgets are currently frozen. Sovereign Buffers engaged.</p>
+            <h4 className="crisis-banner-title">{copy.title}</h4>
+            <p className="crisis-banner-text">{copy.detail}</p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-3" style={{ marginBottom: '24px' }}>
-        <div className="card" style={{ borderColor: isActive ? '#ef4444' : 'var(--border-color)' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <PowerOff size={20} color={isActive ? '#ef4444' : "var(--text-secondary)"} /> 
-            Dynamic Re-prioritization
+      <div className="grid grid-cols-3 crisis-grid">
+        <div className={`card crisis-card ${isActive ? 'crisis-card-hot' : ''}`}>
+          <h3 className="crisis-card-title">
+            <PowerOff size={20} className={isActive ? 'crisis-icon-warn' : ''} aria-hidden />
+            Dynamic Re-prioritisation
           </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-            <span>Highway Phase 4</span>
-            <span style={{ color: isActive ? '#ef4444' : '#16a34a', fontWeight: '600' }}>{isActive ? 'FROZEN' : 'ACTIVE'}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-            <span>Stadium Complex</span>
-            <span style={{ color: isActive ? '#ef4444' : '#16a34a', fontWeight: '600' }}>{isActive ? 'FROZEN' : 'ACTIVE'}</span>
-          </div>
-          {isActive && (
-            <div style={{ marginTop: '16px', padding: '8px', backgroundColor: '#16a34a', color: 'white', borderRadius: '4px', fontSize: '12px', textAlign: 'center', fontWeight: '600' }}>
-              ₹ 450 Cr Diverted to Emergency Relief
+          <p className="crisis-card-hint">One-click freeze on luxury infrastructure; automatic relief envelopes.</p>
+          <div className="crisis-rows">
+            <div className="crisis-row">
+              <span>Highway Phase IV (aesthetic viaduct)</span>
+              <span className={isActive ? 'crisis-frozen' : 'crisis-ok'}>{isActive ? 'Frozen' : 'Active'}</span>
             </div>
-          )}
+            <div className="crisis-row">
+              <span>Stadium complex (non-essential)</span>
+              <span className={isActive ? 'crisis-frozen' : 'crisis-ok'}>{isActive ? 'Frozen' : 'Active'}</span>
+            </div>
+            <div className="crisis-row">
+              <span>Emergency relief & logistics</span>
+              <span className="crisis-ok">{isActive ? 'Surged' : 'Standby'}</span>
+            </div>
+          </div>
+          {isActive && <div className="crisis-divert">₹ 450 Cr diverted to emergency relief & logistics (synthetic run).</div>}
         </div>
 
-        <div className="card">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <CloudRain size={20} color="#3b82f6" /> 
-            Seasonal Predictor
+        <div className="card crisis-card">
+          <h3 className="crisis-card-title">
+            <CloudRain size={20} aria-hidden />
+            Seasonal Relief Predictor
           </h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-            Based on June rainfall data, flood risks analyzed.
+          <p className="crisis-card-hint">
+            June / July rainfall ensembles pre-position sovereign buffers in flood-prone districts before peak discharge.
           </p>
-          <div style={{ padding: '12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3b82f6', borderRadius: '4px' }}>
-            <strong style={{ display: 'block', fontSize: '14px', color: '#1d4ed8' }}>Assam Region Buffer</strong>
-            <span style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>₹ 120 Cr</span>
-            <span style={{ fontSize: '12px', marginLeft: '8px', color: '#16a34a' }}>Pre-allocated</span>
+          <div className="crisis-rain-card">
+            <strong>Assam — Brahmaputra belt</strong>
+            <div className="crisis-rain-row">
+              <span className="crisis-rain-amt">₹ 120 Cr</span>
+              <span className="crisis-rain-tag">Pre-allocated buffer</span>
+            </div>
+            <div className="crisis-rain-row subtle">
+              <span>Konkan / Western Ghats</span>
+              <span>₹ 85 Cr staged</span>
+            </div>
           </div>
+          <ul className="crisis-feed">
+            {crisisFeeds.map((f) => (
+              <li key={f.id} className={`crisis-feed-item ${f.severity}`}>
+                <span className="crisis-feed-src">{f.source}</span>
+                {f.summary}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="card" style={{ gridRow: 'span 2' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Truck size={20} /> 
-            Logistics Tracker
+        <div className="card crisis-card crisis-logistics">
+          <h3 className="crisis-card-title">
+            <Truck size={20} aria-hidden />
+            Real-Time Logistics Tracker
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ borderLeft: '2px solid #16a34a', paddingLeft: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>10:45 AM</div>
-              <div style={{ fontWeight: '600' }}>Funds Disbursed</div>
-              <div style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}><Wallet size={14}/> District Digital Wallet: +₹ 50Cr</div>
+          <p className="crisis-card-hint">Emergency funds flow to district digital wallets with cryptographic attestations.</p>
+          <div className="crisis-timeline">
+            <div className="crisis-tl-item done">
+              <div className="crisis-tl-time">10:45</div>
+              <div className="crisis-tl-body">
+                <strong>Funds disbursed</strong>
+                <div className="crisis-wallet">
+                  <Wallet size={14} aria-hidden /> District wallet · +₹ 50 Cr (ACK)
+                </div>
+              </div>
             </div>
-            <div style={{ borderLeft: '2px solid #3b82f6', paddingLeft: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>11:30 AM</div>
-              <div style={{ fontWeight: '600' }}>Medical Supply Dispatch</div>
-              <div style={{ fontSize: '14px' }}>40 Trucks En Route to Zone A</div>
+            <div className="crisis-tl-item active">
+              <div className="crisis-tl-time">11:30</div>
+              <div className="crisis-tl-body">
+                <strong>Medical supply dispatch</strong>
+                <div>40 refrigerated trucks en route to Zone A</div>
+              </div>
             </div>
-            <div style={{ borderLeft: '2px dashed var(--border-color)', paddingLeft: '12px', opacity: 0.6 }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Pending</div>
-              <div style={{ fontWeight: '600' }}>Local Distribution Confirmation</div>
+            <div className="crisis-tl-item pending">
+              <div className="crisis-tl-time">—</div>
+              <div className="crisis-tl-body">
+                <strong>Last-mile distribution confirmation</strong>
+                <div>Awaiting taluk nodal officer signatures</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-// Quick shim for AlertTriangle since we use it inside the component scope without explicit outer import for it if not already there
-import { AlertTriangle } from 'lucide-react';
-export default CrisisMode;
+}
